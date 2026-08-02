@@ -22,17 +22,36 @@
 
 ## 快速开始
 
-### 直接执行（推荐）
+### 方式 1：code Server + Cloudflare Tunnel 一体化部署（推荐）
+
+部署 code Server 并自动配置 Cloudflare Tunnel 将其暴露到公网。
+
+中文版：
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_CF_tunnel.sh)"
 ```
 
-### 备用sh执行（en_US)
+英文版（en_US）：
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_en.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_CF_tunnel_en.sh)"
 ```
+
+### 方式 2：仅部署 Cloudflare Tunnel（转发到自定义端口）
+
+适用场景：服务器上已有监听某端口的服务（如 code-server、Web 应用、API 等），只需将其通过 Cloudflare Tunnel 暴露到公网域名，无需安装 code Server。
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_tunnel.sh)"
+```
+
+执行时会提示输入：
+
+- **本地端口号**（1-65535）：Tunnel 将 `https://你的域名` 转发到 `http://localhost:端口`
+- **完整域名**：如 `app.example.com`
+
+> 注意：此脚本不会启动后端服务，仅负责建立 Tunnel 转发。请确保目标端口已有服务在监听。
 
 
 
@@ -151,7 +170,7 @@ journalctl -u cloudflared
 要获取最新版本的脚本，只需重新运行下载命令：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_CF_tunnel.sh | bash
 ```
 
 ## 许可证
