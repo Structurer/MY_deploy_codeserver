@@ -1,9 +1,12 @@
 # code Server / Cloudflare Tunnel 部署工具集
 
-本仓库提供两组完全解耦的部署脚本，可独立或组合使用：
+本仓库提供三类完全解耦的脚本，可独立或组合使用：
 
 - **code Server 部署脚本**：仅安装 code Server（支持自定义监听端口），不含任何 Cloudflare 逻辑。
 - **Cloudflare Tunnel 部署脚本**：独立部署 / 追加 Cloudflare Tunnel（单 tunnel + 多 ingress，可重复运行），不依赖 code Server。
+- **Cloudflare Tunnel 管理脚本**：交互式菜单管理已有 tunnel（查看/创建/删除/重建/DNS 绑定）。
+
+所有脚本均提供中文版与英文版（`_en` 后缀）。
 
 组合方式：先跑 code Server 脚本 → 再跑 Tunnel 脚本把端口暴露到公网。
 
@@ -34,20 +37,20 @@
 
 ## 快速开始
 
-### 方式 1：仅部署 code Server（支持自定义端口）
+### 1：仅部署 code Server（支持自定义端口）
 
 仅安装和配置 code Server，不带任何 Cloudflare Tunnel。部署完成后如需公网访问，再运行方式 2 的 Tunnel 脚本把端口暴露出去。
 
 中文版：
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_CF_tunnel.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver.sh)"
 ```
 
 英文版（en_US）：
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_CF_tunnel_en.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_en.sh)"
 ```
 
 执行时会提示输入：
@@ -57,14 +60,22 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codese
 
 执行完成后，code Server 监听 `http://127.0.0.1:<端口>`。需要公网访问时，继续运行方式 2 的 Tunnel 脚本，输入相同的端口即可。
 
-### 方式 2：仅部署 Cloudflare Tunnel（可重复运行，自动追加多端口转发）
+### 2：仅部署 Cloudflare Tunnel（可重复运行，自动追加多端口转发）
 
 适用场景：服务器上已有监听某端口的服务（如 code-server、Web 应用、API 等），只需将其通过 Cloudflare Tunnel 暴露到公网域名，无需安装 code Server。
 
 **支持多次运行追加路由**：首次运行完成部署后，再次运行会自动检测已有 tunnel，在同一条 tunnel 的 ingress 规则中追加新的域名+端口，不会创建新 tunnel 也不会卸载重装 systemd 服务。
 
+中文版：
+
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_tunnel.sh)"
+```
+
+英文版（en_US）：
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_tunnel_en.sh)"
 ```
 
 执行时会提示输入：
@@ -98,6 +109,29 @@ bash deploy_tunnel.sh
 
 
 
+
+### 3：tunnel管理（交互式菜单：列表/创建/删除/重建/DNS 绑定）
+
+中文版：
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/cloudflare_tunnel_manager.sh)"
+```
+
+英文版（en_US）：
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/cloudflare_tunnel_manager_en.sh)"
+```
+
+
+
+
+
+
+
+
+
+
+
 #### 常用命令
 
 
@@ -106,11 +140,6 @@ bash deploy_tunnel.sh
 ssh-keygen -R example_ip
 ```
 
-
-* tunnel管理
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/cloudflare_tunnel_manager.sh)"
-```
 
 
 * 提权
@@ -212,7 +241,7 @@ journalctl -u cloudflared
 要获取最新版本的脚本，只需重新运行下载命令：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_CF_tunnel.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver.sh | bash
 ```
 
 ## 许可证
