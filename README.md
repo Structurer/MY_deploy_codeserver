@@ -50,7 +50,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codese
 英文版（en_US）：
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_codeserver_en.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/en_version/deploy_codeserver_en.sh)"
 ```
 
 执行时会提示输入：
@@ -75,7 +75,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codese
 英文版（en_US）：
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/deploy_tunnel_en.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/en_version/deploy_tunnel_en.sh)"
 ```
 
 执行时会提示输入：
@@ -119,7 +119,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codese
 
 英文版（en_US）：
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/cloudflare_tunnel_manager_en.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/Structurer/deploy_codeserver/main/en_version/cloudflare_tunnel_manager_en.sh)"
 ```
 
 
