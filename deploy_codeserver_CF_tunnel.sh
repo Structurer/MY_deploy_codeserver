@@ -267,7 +267,7 @@ fi
 echo "使用的域名: $FULL_DOMAIN"
 
 echo ""
-echo "11. 创建 Cloudflare Tunnel..."
+echo "10. 创建 Cloudflare Tunnel..."
 TUNNEL_NAME="codeserver-tunnel"
 TUNNEL_ID=""
 
@@ -455,7 +455,7 @@ else
 fi
 
 echo ""
-echo "12. 配置 Cloudflare Tunnel..."
+echo "11. 配置 Cloudflare Tunnel..."
 mkdir -p /etc/cloudflared
 cat > /etc/cloudflared/config.yml << EOF
 url: http://localhost:8080
@@ -464,7 +464,7 @@ credentials-file: /root/.cloudflared/$TUNNEL_ID.json
 EOF
 
 echo ""
-echo "13. 启动并启用 Cloudflare Tunnel 服务..."
+echo "12. 启动并启用 Cloudflare Tunnel 服务..."
 # 检查服务是否已安装
 if [ -f "/etc/systemd/system/cloudflared.service" ]; then
     echo "检测到 Cloudflare Tunnel 服务已存在，先卸载旧服务..."
@@ -477,7 +477,7 @@ systemctl enable --now cloudflared
 sleep 5
 
 echo ""
-echo "14. 绑定自定义域名到 Cloudflare Tunnel..."
+echo "13. 绑定自定义域名到 Cloudflare Tunnel..."
 echo "将 $FULL_DOMAIN 绑定到 tunnel..."
 BIND_RESULT=$(cloudflared tunnel route dns $TUNNEL_NAME $FULL_DOMAIN 2>&1)
 

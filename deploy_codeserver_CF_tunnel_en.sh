@@ -267,7 +267,7 @@ fi
 echo "Using domain: $FULL_DOMAIN"
 
 echo ""
-echo "11. Creating Cloudflare Tunnel..."
+echo "10. Creating Cloudflare Tunnel..."
 TUNNEL_NAME="codeserver-tunnel"
 TUNNEL_ID=""
 
@@ -455,7 +455,7 @@ else
 fi
 
 echo ""
-echo "12. Configuring Cloudflare Tunnel..."
+echo "11. Configuring Cloudflare Tunnel..."
 mkdir -p /etc/cloudflared
 cat > /etc/cloudflared/config.yml << EOF
 url: http://localhost:8080
@@ -464,7 +464,7 @@ credentials-file: /root/.cloudflared/$TUNNEL_ID.json
 EOF
 
 echo ""
-echo "13. Starting and enabling Cloudflare Tunnel service..."
+echo "12. Starting and enabling Cloudflare Tunnel service..."
 # Check if service is already installed
 if [ -f "/etc/systemd/system/cloudflared.service" ]; then
     echo "Detected Cloudflare Tunnel service already exists, uninstalling old service first..."
@@ -477,7 +477,7 @@ systemctl enable --now cloudflared
 sleep 5
 
 echo ""
-echo "14. Binding custom domain to Cloudflare Tunnel..."
+echo "13. Binding custom domain to Cloudflare Tunnel..."
 echo "Binding $FULL_DOMAIN to tunnel..."
 BIND_RESULT=$(cloudflared tunnel route dns $TUNNEL_NAME $FULL_DOMAIN 2>&1)
 
