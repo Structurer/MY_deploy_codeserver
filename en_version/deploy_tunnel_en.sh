@@ -70,6 +70,41 @@ domain_exists() {
     awk '{print $1}' "$ROUTES_FILE" | grep -qxF "$target"
 }
 
+# Get current port for a domain in routes.conf (echoes port if found, returns 1 otherwise)
+get_domain_port() {
+    local target=$1
+    [ ! -f "$ROUTES_FILE" ] && return 1
+    awk -v d="$target" '$1==d {print $2; exit}' "$ROUTES_FILE"
+}
+
+# Remove all lines for a given domain from routes.conf (for dedup / overwrite cleanup)
+remove_domain_from_routes() {
+    local target=$1
+    [ ! -f "$ROUTES_FILE" ] && return 0
+    local tmp
+    tmp=$(mktemp)
+    awk -v d="$target" '$1!=d' "$ROUTES_FILE" > "$tmp" && mv "$tmp" "$ROUTES_FILE"
+}
+
+# Get all domains using the given port (comma-separated; returns 1 if none)
+get_port_domains() {
+    local target_port=$1
+    [ ! -f "$ROUTES_FILE" ] && return 1
+    local result
+    result=$(awk -v p="$target_port" '$2==p {print $1}' "$ROUTES_FILE" | paste -sd, -)
+    [ -z "$result" ] && return 1
+    echo "$result"
+}
+
+# Remove all lines using the given port from routes.conf (for port overwrite cleanup)
+remove_port_from_routes() {
+    local target_port=$1
+    [ ! -f "$ROUTES_FILE" ] && return 0
+    local tmp
+    tmp=$(mktemp)
+    awk -v p="$target_port" '$2!=p' "$ROUTES_FILE" > "$tmp" && mv "$tmp" "$ROUTES_FILE"
+}
+
 # Show all current routes
 show_current_routes() {
     echo ""
@@ -168,12 +203,54 @@ echo "Step 1/4: Configure new forwarding rule"
 echo "Enter the local port to forward to (1-65535):"
 while true; do
     read -p "Local port: " LOCAL_PORT
-    if [[ "$LOCAL_PORT" =~ ^[0-9]+$ ]] && [ "$LOCAL_PORT" -ge 1 ] && [ "$LOCAL_PORT" -le 65535 ]; then
-        break
-    else
+    if ! [[ "$LOCAL_PORT" =~ ^[0-9]+$ ]] || [ "$LOCAL_PORT" -lt 1 ] || [ "$LOCAL_PORT" -gt 65535 ]; then
         echo "Error: invalid port number, please enter a number between 1 and 65535"
+        continue
     fi
+    # Check if port is already used by another domain
+    if OLD_DOMAINS=$(get_port_domains "$LOCAL_PORT"); then
+        echo ""
+        echo "Port $LOCAL_PORT is already used by: $OLD_DOMAINS"
+        echo "Note: multiple domains pointing to the same port is allowed in Cloudflare Tunnel (append is recommended); choose overwrite only if you want to keep this port exclusive to the new domain."
+        echo "Please choose an action:"
+        echo "1. Skip: do not add this route, exit the script"
+        echo "2. Overwrite: delete the existing entries using this port, keep only this new domain + port forwarding"
+        echo "3. Change port: enter a different port to continue"
+        echo "4. Append (Recommended): keep the existing entries and add this new domain -> port $LOCAL_PORT forwarding"
+        read -p "Enter choice (1/2/3/4): " port_dup_choice
+        case "$port_dup_choice" in
+            1)
+                echo ""
+                echo "Skipped adding this route. Script ended."
+                exit 0
+                ;;
+            2)
+                echo "Overwrite chosen: removing all entries using this port..."
+                remove_port_from_routes "$LOCAL_PORT"
+                PORT_MODE="overwrite"
+                break
+                ;;
+            3)
+                echo "Please re-enter a different port."
+                continue
+                ;;
+            4)
+                echo "Append chosen: keeping existing entries and adding one more forwarding to the same port."
+                PORT_MODE="append"
+                break
+                ;;
+            *)
+                echo "Error: invalid choice, please enter 1 / 2 / 3 / 4"
+                continue
+                ;;
+        esac
+    fi
+    break
 done
+
+if [ -z "$PORT_MODE" ]; then
+    PORT_MODE="new"
+fi
 
 # Domain input
 echo ""
@@ -185,11 +262,42 @@ while true; do
         continue
     fi
     if domain_exists "$FULL_DOMAIN"; then
-        echo "Error: domain $FULL_DOMAIN already exists in the route table, please use a different domain"
-        continue
+        OLD_PORT=$(get_domain_port "$FULL_DOMAIN" || echo "")
+        echo ""
+        echo "Domain $FULL_DOMAIN already exists in the route table, currently forwarding to port: ${OLD_PORT:-unknown}"
+        echo "Please choose an action:"
+        echo "1. Skip: do not add this route, exit the script"
+        echo "2. Overwrite: delete the existing entry, replace with new port $LOCAL_PORT"
+        echo "3. Change domain: enter a different domain to continue"
+        read -p "Enter choice (1/2/3): " dup_choice
+        case "$dup_choice" in
+            1)
+                echo ""
+                echo "Skipped adding this route. Script ended."
+                exit 0
+                ;;
+            2)
+                echo "Overwrite chosen: removing old entry and writing new port..."
+                remove_domain_from_routes "$FULL_DOMAIN"
+                DOMAIN_MODE="overwrite"
+                break
+                ;;
+            3)
+                echo "Please re-enter a different domain."
+                continue
+                ;;
+            *)
+                echo "Error: invalid choice, please enter 1 / 2 / 3"
+                continue
+                ;;
+        esac
     fi
     break
 done
+
+if [ -z "$DOMAIN_MODE" ]; then
+    DOMAIN_MODE="new"
+fi
 
 echo ""
 echo "New rule: https://$FULL_DOMAIN  ->  http://localhost:$LOCAL_PORT"
@@ -380,7 +488,9 @@ if $FIRST_DEPLOY; then
     echo "7. Writing persistent configuration..."
     mkdir -p "$CLOUDFLARED_DIR"
     save_tunnel_meta "$TUNNEL_NAME" "$TUNNEL_ID"
-    echo "$FULL_DOMAIN $LOCAL_PORT" > "$ROUTES_FILE"
+    # Remove existing line for the same domain first (defense against legacy state), then append
+    remove_domain_from_routes "$FULL_DOMAIN"
+    echo "$FULL_DOMAIN $LOCAL_PORT" >> "$ROUTES_FILE"
 
     regenerate_config "$TUNNEL_ID"
 
@@ -419,6 +529,13 @@ else
     # --- Append to route table ---
     echo ""
     echo "Step 2/4: Writing new route..."
+    # Remove existing line for the same domain first (dedup + overwrite safety), then append
+    if [ "$DOMAIN_MODE" = "overwrite" ]; then
+        echo "Overwrite mode: removing old entry for $FULL_DOMAIN, writing port $LOCAL_PORT"
+    else
+        echo "Add mode: adding $FULL_DOMAIN forwarding to port $LOCAL_PORT"
+    fi
+    remove_domain_from_routes "$FULL_DOMAIN"
     echo "$FULL_DOMAIN $LOCAL_PORT" >> "$ROUTES_FILE"
 
     # --- Regenerate config.yml ---

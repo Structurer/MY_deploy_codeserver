@@ -70,6 +70,42 @@ domain_exists() {
     awk '{print $1}' "$ROUTES_FILE" | grep -qxF "$target"
 }
 
+# 获取域名在 routes.conf 中对应的当前端口（如果存在则 echo 端口号，否则返回 1
+get_domain_port() {
+    local target=$1
+    [ ! -f "$ROUTES_FILE" ] && return 1
+    awk -v d="$target" '$1==d {print $2; exit}' "$ROUTES_FILE"
+}
+
+# 从 routes.conf 中删除指定域名的所有行（用于去重 / 端口覆盖时清理旧条目）
+remove_domain_from_routes() {
+    local target=$1
+    [ ! -f "$ROUTES_FILE" ] && return 0
+    # 使用临时文件方式，保证兼容 macOS/Linux
+    local tmp
+    tmp=$(mktemp)
+    awk -v d="$target" '$1!=d' "$ROUTES_FILE" > "$tmp" && mv "$tmp" "$ROUTES_FILE"
+}
+
+# 获取使用指定端口的所有域名（逗号分隔输出；无则返回 1）
+get_port_domains() {
+    local target_port=$1
+    [ ! -f "$ROUTES_FILE" ] && return 1
+    local result
+    result=$(awk -v p="$target_port" '$2==p {print $1}' "$ROUTES_FILE" | paste -sd, -)
+    [ -z "$result" ] && return 1
+    echo "$result"
+}
+
+# 从 routes.conf 中删除使用指定端口的所有行（用于端口覆盖时清理旧条目）
+remove_port_from_routes() {
+    local target_port=$1
+    [ ! -f "$ROUTES_FILE" ] && return 0
+    local tmp
+    tmp=$(mktemp)
+    awk -v p="$target_port" '$2!=p' "$ROUTES_FILE" > "$tmp" && mv "$tmp" "$ROUTES_FILE"
+}
+
 # 显示当前所有路由
 show_current_routes() {
     echo ""
@@ -168,12 +204,54 @@ echo "步骤 1/4：配置新的转发规则"
 echo "请输入要转发到的本地端口号（1-65535）："
 while true; do
     read -p "本地端口: " LOCAL_PORT
-    if [[ "$LOCAL_PORT" =~ ^[0-9]+$ ]] && [ "$LOCAL_PORT" -ge 1 ] && [ "$LOCAL_PORT" -le 65535 ]; then
-        break
-    else
+    if ! [[ "$LOCAL_PORT" =~ ^[0-9]+$ ]] || [ "$LOCAL_PORT" -lt 1 ] || [ "$LOCAL_PORT" -gt 65535 ]; then
         echo "错误：端口号无效，请输入 1-65535 之间的数字"
+        continue
     fi
+    # 检测端口是否已被其他域名使用
+    if OLD_DOMAINS=$(get_port_domains "$LOCAL_PORT"); then
+        echo ""
+        echo "端口 $LOCAL_PORT 已被以下域名使用：$OLD_DOMAINS"
+        echo "提示：在 Cloudflare Tunnel 中，多域名指向同一端口是合法的（推荐直接追加）；只有当你希望独占此端口时才选覆盖。"
+        echo "请选择操作："
+        echo "1. 跳过：不添加这条路由，直接退出脚本"
+        echo "2. 覆盖：删除上述使用此端口的旧条目，仅保留本次新域名 + 此端口的转发"
+        echo "3. 改端口：换一个不同的端口继续"
+        echo "4. 追加（推荐）：保留上述旧条目，再新增本次新域名 -> 端口 $LOCAL_PORT 的转发"
+        read -p "请输入选择 (1/2/3/4): " port_dup_choice
+        case "$port_dup_choice" in
+            1)
+                echo ""
+                echo "已选择跳过本次添加，脚本结束。"
+                exit 0
+                ;;
+            2)
+                echo "已选择覆盖，将删除使用此端口的所有旧条目..."
+                remove_port_from_routes "$LOCAL_PORT"
+                PORT_MODE="overwrite"
+                break
+                ;;
+            3)
+                echo "请重新输入一个不同的端口。"
+                continue
+                ;;
+            4)
+                echo "已选择追加：保留旧域名，再新增一条到同一端口的转发。"
+                PORT_MODE="append"
+                break
+                ;;
+            *)
+                echo "错误：无效选择，请输入 1 / 2 / 3 / 4"
+                continue
+                ;;
+        esac
+    fi
+    break
 done
+
+if [ -z "$PORT_MODE" ]; then
+    PORT_MODE="new"
+fi
 
 # 域名输入
 echo ""
@@ -185,11 +263,43 @@ while true; do
         continue
     fi
     if domain_exists "$FULL_DOMAIN"; then
-        echo "错误：域名 $FULL_DOMAIN 已存在于路由表中，请使用不同的域名"
-        continue
+        OLD_PORT=$(get_domain_port "$FULL_DOMAIN" || echo "")
+        echo ""
+        echo "域名 $FULL_DOMAIN 已存在于路由表中，当前转发到端口: ${OLD_PORT:-未知}"
+        echo "请选择操作："
+        echo "1. 跳过：不添加这条路由，直接退出脚本"
+        echo "2. 覆盖：删除旧条目，用新端口 $LOCAL_PORT 替换原有配置"
+        echo "3. 改域名：换一个不同的域名继续"
+        read -p "请输入选择 (1/2/3): " dup_choice
+        case "$dup_choice" in
+            1)
+                echo ""
+                echo "已选择跳过本次添加，脚本结束。"
+                exit 0
+                ;;
+            2)
+                echo "已选择覆盖，将删除旧条目并写入新端口..."
+                remove_domain_from_routes "$FULL_DOMAIN"
+                # 标记：后续写路由时不会触发重复（旧行已清除）
+                DOMAIN_MODE="overwrite"
+                break
+                ;;
+            3)
+                echo "请重新输入一个不同的域名。"
+                continue
+                ;;
+            *)
+                echo "错误：无效选择，请输入 1 / 2 / 3"
+                continue
+                ;;
+        esac
     fi
     break
 done
+
+if [ -z "$DOMAIN_MODE" ]; then
+    DOMAIN_MODE="new"
+fi
 
 echo ""
 echo "新规则：https://$FULL_DOMAIN  ->  http://localhost:$LOCAL_PORT"
@@ -380,7 +490,9 @@ if $FIRST_DEPLOY; then
     echo "7. 写入持久化配置..."
     mkdir -p "$CLOUDFLARED_DIR"
     save_tunnel_meta "$TUNNEL_NAME" "$TUNNEL_ID"
-    echo "$FULL_DOMAIN $LOCAL_PORT" > "$ROUTES_FILE"
+    # 先清理同名已有行（防御首次部署时的历史残留），再写入，确保一域名一行
+    remove_domain_from_routes "$FULL_DOMAIN"
+    echo "$FULL_DOMAIN $LOCAL_PORT" >> "$ROUTES_FILE"
 
     regenerate_config "$TUNNEL_ID"
 
@@ -419,6 +531,13 @@ else
     # --- 追加到路由表 ---
     echo ""
     echo "步骤 2/4：写入新路由..."
+    # 先清理同名已有行（防御重复 / 覆盖更新），再写入，确保一域名一行
+    if [ "$DOMAIN_MODE" = "overwrite" ]; then
+        echo "覆盖模式：删除 $FULL_DOMAIN 旧条目，写入端口 $LOCAL_PORT"
+    else
+        echo "新增模式：添加 $FULL_DOMAIN 转发到端口 $LOCAL_PORT"
+    fi
+    remove_domain_from_routes "$FULL_DOMAIN"
     echo "$FULL_DOMAIN $LOCAL_PORT" >> "$ROUTES_FILE"
 
     # --- 重生成 config.yml ---
