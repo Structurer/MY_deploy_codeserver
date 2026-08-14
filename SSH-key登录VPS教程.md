@@ -117,11 +117,11 @@ type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh 用户名@VPS_IP "mkdir -p ~/.ss
    ```bash
    echo "粘贴你的完整公钥整行内容" >> ~/.ssh/authorized_keys
    ```
-4. 设置密钥文件权限
+5. 设置密钥文件权限
    ```bash
    chmod 600 ~/.ssh/authorized_keys
    ```
-5. 确认写入是否成功（可选）
+6. 确认写入是否成功（可选）
    ```bash
    cat ~/.ssh/authorized_keys
    ```
