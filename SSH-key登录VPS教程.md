@@ -107,11 +107,14 @@ type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh 用户名@VPS_IP "mkdir -p ~/.ss
 
 #### 方法 B:手动上传
 
-1. 用记事本打开 `C:\Users\你的用户名\.ssh\id_ed25519.pub`,复制**完整一整行**公钥内容
-2. 用密码登录 VPS:`ssh 用户名@VPS_IP`
-3. 在 VPS 上执行:
+1. 用密码登录 VPS:`ssh 用户名@VPS_IP`
+2. 在 VPS 上创建 `.ssh` 目录并设置权限：
    ```bash
    mkdir -p ~/.ssh && chmod 700 ~/.ssh
+   ```
+3. 用记事本打开 `C:\Users\你的用户名\.ssh\id_ed25519.pub`,复制**完整一整行**公钥内容
+4. 在 VPS 上执行：
+   ```bash
    echo "粘贴你的完整公钥整行内容" >> ~/.ssh/authorized_keys
    ```
 4. 设置密钥文件权限
