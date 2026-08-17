@@ -1,54 +1,112 @@
-在本地使用 Wrangler 配置 Cloudflare API Token，在 Linux、Windows 和 macOS 上的核心方法是通用的，主要区别在于环境变量的设置方式。更推荐使用 API Token 的方式，因为它比 Global API Key 更安全。
 
-### 🛠️ 通用设置步骤
+---
 
-1.  **获取 API Token**：登录 Cloudflare 控制台，在 "我的个人资料" → "API Tokens" 中，使用 "编辑 Cloudflare Workers" 模板创建一个新的 Token，并务必复制并保存好生成的 Token 。
+## Windows
 
-2.  **设置 Account ID**：你可以在 Cloudflare 控制台的仪表板 "概述" 页面找到你的 Account ID 。
+### 方式一：命令行（临时，推荐用于测试）
 
-### 🖥️ 各系统设置环境变量的方法
+**命令提示符 (cmd)**
+```cmd
+set CLOUDFLARE_API_TOKEN=你的-api-token
+```
 
-在你的终端中，根据使用的操作系统，通过以下方式将 Token 和 Account ID 设置为环境变量。
+**PowerShell**
+```powershell
+$env:CLOUDFLARE_API_TOKEN="你的-api-token"
+```
 
-#### Linux 与 macOS
-这两种系统都是类 Unix 环境，设置方法相同。
+### 方式二：永久生效（推荐）
 
-*   **临时设置（仅对当前终端会话生效）**：直接在终端中执行 export 命令。
-    ```bash
-    export CLOUDFLARE_API_TOKEN="你的-api-token"
-    export CLOUDFLARE_ACCOUNT_ID="你的-account-id"
-    ```
+1. 打开 **系统属性** → **高级** → **环境变量**
+2. 在 **用户变量** 或 **系统变量** 中点击 **新建**
+3. 变量名：`CLOUDFLARE_API_TOKEN`
+4. 变量值：`你的-api-token`
+5. 点击确定，重启终端生效
 
-*   **永久生效（推荐）**：将上面的 export 命令添加到你的 Shell 配置文件中，例如 `~/.bashrc` (Bash)、`~/.zshrc` (Zsh) 或 `~/.fish` (Fish)，这样每次打开终端都会自动加载。
+---
 
-    ```bash
-    # 例如，在 ~/.zshrc 文件中添加
-    export CLOUDFLARE_API_TOKEN="你的-api-token"
-    export CLOUDFLARE_ACCOUNT_ID="你的-account-id"
-    ```
+## Linux
 
-#### Windows
-Windows 可以通过命令行设置环境变量。
+### 方式一：命令行（临时）
+```bash
+export CLOUDFLARE_API_TOKEN="你的-api-token"
+```
 
-*   **命令提示符 (cmd)**：使用 `set` 命令。
-    ```cmd
-    set CLOUDFLARE_API_TOKEN="你的-api-token"
-    set CLOUDFLARE_ACCOUNT_ID="你的-account-id"
-    ```
+### 方式二：永久生效（推荐）
+```bash
+# 编辑配置文件
+nano ~/.bashrc  # 或 ~/.zshrc
 
-*   **PowerShell**：使用 `$env:` 前缀。
-    ```powershell
-    $env:CLOUDFLARE_API_TOKEN="你的-api-token"
-    $env:CLOUDFLARE_ACCOUNT_ID="你的-account-id"
-    ```
-    **注意**：通过命令行设置的环境变量都是**临时的**，只对当前窗口有效。如果希望永久生效，需要通过 Windows 系统的"环境变量"设置界面来添加。
+# 在文件末尾添加
+export CLOUDFLARE_API_TOKEN="你的-api-token"
 
-### ✅ 验证配置
+# 保存后重新加载
+source ~/.bashrc  # 或 source ~/.zshrc
+```
 
-设置完成后，可以运行以下命令来验证你的认证配置是否成功：
+---
+
+## macOS
+
+### 方式一：命令行（临时）
+```bash
+export CLOUDFLARE_API_TOKEN="你的-api-token"
+```
+
+### 方式二：永久生效（推荐）
+```bash
+# 编辑配置文件
+nano ~/.zshrc  # macOS Catalina+ 默认 Zsh
+# 或 nano ~/.bash_profile  # 旧版本
+
+# 在文件末尾添加
+export CLOUDFLARE_API_TOKEN="你的-api-token"
+
+# 保存后重新加载
+source ~/.zshrc  # 或 source ~/.bash_profile
+```
+
+---
+
+## 验证配置
+
+设置完成后，运行以下命令验证：
 ```bash
 wrangler whoami
 ```
-如果配置正确，该命令会打印出你的账户邮箱和 Account ID 等信息。
 
+输出会显示你的账户信息，包括自动获取的 Account ID，说明配置成功！
 
+```bash
+⛅️ wrangler 3.x.x
+---------------------------------
+Your Account ID: abc123def456...
+Your Email: your-email@example.com
+```
+
+---
+
+## 快速对比
+
+| 系统 | 临时设置 | 永久设置 |
+|------|---------|---------|
+| **Windows (cmd)** | `set CLOUDFLARE_API_TOKEN=xxx` | 系统环境变量界面 |
+| **Windows (PowerShell)** | `$env:CLOUDFLARE_API_TOKEN="xxx"` | 系统环境变量界面 |
+| **Linux** | `export CLOUDFLARE_API_TOKEN="xxx"` | `~/.bashrc` |
+| **macOS** | `export CLOUDFLARE_API_TOKEN="xxx"` | `~/.zshrc` |
+
+---
+
+## 额外提示
+
+- **Token 权限**：确保你的 Token 有 **Workers** 相关权限（编辑、部署等）
+- **安全注意**：Token 相当于密码，不要提交到代码仓库
+- **多项目**：一个 Token 可以在多个项目中复用
+- **Wrangler 版本**：确保 wrangler 版本 >= 2.0
+
+如果遇到问题，可以检查：
+```bash
+wrangler --version
+echo $CLOUDFLARE_API_TOKEN  # Linux/macOS
+echo %CLOUDFLARE_API_TOKEN%  # Windows cmd
+```
