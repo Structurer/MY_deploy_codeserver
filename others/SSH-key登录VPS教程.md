@@ -329,7 +329,7 @@ ssh-keygen -R 104.168.100.89
 ## 2. 生成密钥
 
 ```powershell
-ssh-keygen -t ed25519 -C "your_email@example.com"
+ssh-keygen -t ed25519 -C "dingo@example.com"
 ```
 
 ## 3. 上传公钥
