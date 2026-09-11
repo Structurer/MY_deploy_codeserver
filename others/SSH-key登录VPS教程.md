@@ -156,6 +156,18 @@ Host myvps
     ServerAliveInterval 60
 ```
 
+例如：
+```ssh-config
+Host myvps
+    HostName 104.168.100.89
+    User root
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+    PreferredAuthentications publickey
+    ServerAliveInterval 60
+```
+
 参数说明:
 - `Host myvps`:自定义简称,随便起
 - `HostName`:VPS 的 IP 地址
