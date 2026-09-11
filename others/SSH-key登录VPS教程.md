@@ -134,17 +134,6 @@ type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@104.168.100.89 "mkdir -p ~/
    ```bash
    cat ~/.ssh/authorized_keys
    ```
-
-   完整命令例如：
-   例如：
-   ```bash
-   mkdir -p ~/.ssh && chmod 700 ~/.ssh
-   echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMc/004rUuITSsPoKABnFDPbhzIfCbmuKbVtgp7+DVCX github" >> ~/.ssh/authorized_keys
-   chmod 600 ~/.ssh/authorized_keys
-   cat ~/.ssh/authorized_keys
-   ```
-  （将公钥换为自己的）
-
    
 > 注意：
 > - 公钥全部放在双引号内部，保持一整行，不要换行拆分；
