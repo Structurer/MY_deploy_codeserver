@@ -97,6 +97,11 @@ Enter passphrase (empty for no passphrase):
 type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh 用户名@VPS_IP "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 ```
 
+例如：
+```powershell
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@104.168.100.89 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+```
+
 这条命令做了四件事:
 1. 读取本地公钥内容
 2. 在 VPS 上创建 `~/.ssh` 目录
