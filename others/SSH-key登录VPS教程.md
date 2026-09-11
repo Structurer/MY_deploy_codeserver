@@ -310,3 +310,51 @@ ssh -v myvps
 ---
 
 **祝你配置顺利!遇到问题多用 `ssh -v` 查看日志,大部分问题都能从中找到线索。**
+
+
+
+
+***
+===
+---
+（全部代码案例）
+
+
+## 1. 清理 known_hosts
+
+```powershell
+ssh-keygen -R 104.168.100.89
+```
+
+## 2. 生成密钥
+
+```powershell
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
+
+## 3. 上传公钥
+
+```powershell
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@104.168.100.89 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+```
+
+## 4. 配置 config
+
+`C:\Users\你的用户名\.ssh\config`
+
+```ssh-config
+Host myvps
+    HostName 104.168.100.89
+    User root
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+    PreferredAuthentications publickey
+    ServerAliveInterval 60
+```
+
+## 5. 测试登录
+
+```powershell
+ssh myvps
+```
