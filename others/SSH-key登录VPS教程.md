@@ -286,6 +286,7 @@ ssh -v myvps
 | 调试连接 | `ssh -v myvps` |
 | 重启 sshd | `sudo systemctl restart ssh` |
 | 查看 sshd 配置 | `sudo nano /etc/ssh/sshd_config` |
+| 删除 known_hosts 中的主机记录 | `ssh-keygen -R 主机名或IP` |
 
 ---
 
