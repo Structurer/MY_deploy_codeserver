@@ -57,7 +57,7 @@ OpenSSH_for_Windows_9.5p2, LibreSSL 3.8.2
 
 ### 第 2 步:生成密钥对
 
-在 PowerShell 中执行(把邮箱换成你自己的):
+在 PowerShell 中执行(可以把邮箱换成你自己的):
 
 ```powershell
 ssh-keygen -t ed25519 -C "your_email@example.com"
